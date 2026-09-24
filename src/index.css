@@ -1,0 +1,34 @@
+@import "tailwindcss";
+
+@theme {
+  --color-unia-green: #0d5c3a;
+  --color-unia-green-hover: #09472c;
+  --color-unia-green-subtle: #e9f5ef;
+  --color-unia-gold: #b48c36;
+  --color-unia-gold-subtle: #faf5eb;
+  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+}
+
+:root {
+  --primary: #0d5c3a;
+  --primary-hover: #09472c;
+  --primary-subtle: #e9f5ef;
+  --accent: #b48c36;
+  --accent-subtle: #faf5eb;
+  --surface: #ffffff;
+  --background: #f8fafc;
+  --border: #e2e8f0;
+}
+
+@media print {
+  body {
+    background-color: white !important;
+    color: black !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+}

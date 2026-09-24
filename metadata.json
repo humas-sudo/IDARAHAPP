@@ -1,0 +1,6 @@
+{
+  "name": "IDARAH — Administrasi Ma'had UNIA",
+  "description": "Sistem Informasi dan Administrasi Terpadu Ma'had Universitas Al-Amien Prenduan (UNIA) untuk Ma'had Putra (Lil Banin) & Ma'had Putri (Lil Banat).",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
