@@ -10,7 +10,8 @@ import {
   CheckCircle2,
   ExternalLink,
   Layers,
-  Database
+  Database,
+  LogOut
 } from 'lucide-react';
 import { User, MahadId, Notification } from '../../types';
 import { db } from '../../services/db';
@@ -25,6 +26,7 @@ interface NavbarProps {
   onOpenSearch: () => void;
   onToggleSidebar: () => void;
   onNavigate: (module: string, subId?: string) => void;
+  onLogout?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -33,7 +35,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onSelectMahad,
   onOpenSearch,
   onToggleSidebar,
-  onNavigate
+  onNavigate,
+  onLogout
 }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -395,7 +398,23 @@ export const Navbar: React.FC<NavbarProps> = ({
                   ))}
                 </div>
 
-                <div className="border-t border-slate-100 mt-2 pt-2 px-2">
+                <div className="border-t border-slate-100 mt-2 pt-2 px-2 space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowUserMenu(false);
+                      if (onLogout) {
+                        onLogout();
+                      } else {
+                        auth.logout();
+                      }
+                    }}
+                    className="w-full py-2 px-3 text-left text-xs font-semibold text-rose-700 hover:bg-rose-50 rounded-lg flex items-center gap-2 transition-colors"
+                  >
+                    <LogOut className="w-3.5 h-3.5 text-rose-600" />
+                    <span>Keluar Akun (Logout)</span>
+                  </button>
+
                   <button
                     type="button"
                     onClick={() => {
@@ -404,7 +423,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                         setShowUserMenu(false);
                       }
                     }}
-                    className="w-full py-1 text-center text-xs text-rose-600 hover:underline"
+                    className="w-full py-1 text-center text-[11px] text-slate-400 hover:text-slate-600 hover:underline"
                   >
                     Reset Data Demo ke Default
                   </button>

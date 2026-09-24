@@ -5,6 +5,8 @@ import { db } from './services/db';
 import { Navbar } from './components/layout/Navbar';
 import { Sidebar } from './components/layout/Sidebar';
 import { Modal } from './components/common/Modal';
+import { SupabaseStatusModal } from './components/common/SupabaseStatusModal';
+import { LoginPage } from './components/auth/LoginPage';
 
 // Dashboard
 import { Dashboard } from './components/dashboard/Dashboard';
@@ -31,16 +33,19 @@ import { LaporanUnit } from './components/reports/LaporanUnit';
 import { StatistikAnalitik } from './components/reports/StatistikAnalitik';
 import { BukuEkspedisi } from './components/reports/BukuEkspedisi';
 
-import { Search, Bell, CheckCircle2, FileText, ArrowRight } from 'lucide-react';
+import { Search, Bell, CheckCircle2, FileText, ArrowRight, Shield } from 'lucide-react';
 
 export default function App() {
-  const [currentUser, setCurrentUser] = useState<User>(() => auth.getCurrentUser());
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => auth.isAuthenticated());
+  const [currentUser, setCurrentUser] = useState<User | null>(() => (auth.isAuthenticated() ? auth.getCurrentUser() : null));
   const [activeMahadId, setActiveMahadId] = useState<MahadId>(() => {
-    const user = auth.getCurrentUser();
-    return user.mahad_id === 'all' ? 'mahad-banin' : user.mahad_id;
+    const user = auth.isAuthenticated() ? auth.getCurrentUser() : null;
+    return user && user.mahad_id !== 'all' ? user.mahad_id : 'mahad-banin';
   });
+
   const [currentModule, setCurrentModule] = useState<string>('dashboard');
   const [isSidebarMobileOpen, setIsSidebarMobileOpen] = useState<boolean>(false);
+  const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState<boolean>(false);
 
   // Workflow tracking states
   const [selectedMeetingId, setSelectedMeetingId] = useState<string | undefined>();
@@ -50,20 +55,66 @@ export default function App() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Subscribe to DB / User updates
+  // Subscribe to Auth & DB updates
   useEffect(() => {
-    const unsub = db.subscribe(() => {
-      const user = auth.getCurrentUser();
-      setCurrentUser(user);
+    const unsubAuth = auth.subscribe(user => {
+      const authed = auth.isAuthenticated();
+      setIsAuthenticated(authed);
+      if (authed && user) {
+        setCurrentUser(user);
+        if (user.mahad_id !== 'all') {
+          setActiveMahadId(user.mahad_id);
+        }
+      } else {
+        setCurrentUser(null);
+      }
     });
-    return () => unsub();
+
+    const unsubDb = db.subscribe(() => {
+      if (auth.isAuthenticated()) {
+        const u = auth.getCurrentUser();
+        setCurrentUser(u);
+      }
+    });
+
+    return () => {
+      unsubAuth();
+      unsubDb();
+    };
   }, []);
+
+  const handleLoginSuccess = (user: User) => {
+    setCurrentUser(user);
+    setIsAuthenticated(true);
+    if (user.mahad_id !== 'all') {
+      setActiveMahadId(user.mahad_id);
+    }
+    setCurrentModule('dashboard');
+  };
+
+  const handleLogout = () => {
+    auth.logout();
+    setIsAuthenticated(false);
+    setCurrentUser(null);
+  };
 
   const handleSelectMahad = (mahadId: MahadId) => {
     setActiveMahadId(mahadId);
   };
 
   const handleNavigate = (module: string, subId?: string) => {
+    if (module === 'database_sync') {
+      setIsSupabaseModalOpen(true);
+      setIsSidebarMobileOpen(false);
+      return;
+    }
+
+    if (module === 'pencarian') {
+      setIsSearchOpen(true);
+      setIsSidebarMobileOpen(false);
+      return;
+    }
+
     setCurrentModule(module);
     if (module === 'notulensi' && subId) {
       setSelectedMeetingId(subId);
@@ -111,6 +162,11 @@ export default function App() {
       }
     : null;
 
+  // Unauthenticated: Render Login Page
+  if (!isAuthenticated || !currentUser) {
+    return <LoginPage onLoginSuccess={handleLoginSuccess} />;
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-900">
       {/* Top Navbar */}
@@ -121,6 +177,7 @@ export default function App() {
         onOpenSearch={() => setIsSearchOpen(true)}
         onToggleSidebar={() => setIsSidebarMobileOpen(!isSidebarMobileOpen)}
         onNavigate={handleNavigate}
+        onLogout={handleLogout}
       />
 
       <div className="flex flex-1 overflow-hidden">
@@ -131,6 +188,7 @@ export default function App() {
           isOpenMobile={isSidebarMobileOpen}
           onCloseMobile={() => setIsSidebarMobileOpen(false)}
           currentUser={currentUser}
+          onLogout={handleLogout}
         />
 
         {/* Workspace Body */}
@@ -265,10 +323,28 @@ export default function App() {
               />
             )}
 
-            {currentModule === 'users' && (
+            {/* Manajemen Pengguna, Organisasi, dan Audit */}
+            {(currentModule === 'users' || currentModule === 'pengguna') && (
               <UserManagement
                 currentUser={currentUser}
                 activeMahadId={activeMahadId}
+                initialTab="users"
+              />
+            )}
+
+            {currentModule === 'organisasi' && (
+              <UserManagement
+                currentUser={currentUser}
+                activeMahadId={activeMahadId}
+                initialTab="organisasi"
+              />
+            )}
+
+            {currentModule === 'audit_log' && (
+              <UserManagement
+                currentUser={currentUser}
+                activeMahadId={activeMahadId}
+                initialTab="audit"
               />
             )}
 
@@ -282,7 +358,10 @@ export default function App() {
                   {db
                     .getState()
                     .notifications.filter(
-                      n => n.user_id === currentUser.id || n.user_id === 'all' || (n.mahad_id === activeMahadId && n.user_id === 'all')
+                      n =>
+                        n.user_id === currentUser.id ||
+                        n.user_id === 'all' ||
+                        (n.mahad_id === activeMahadId && n.user_id === 'all')
                     )
                     .map(notif => (
                       <div
@@ -315,6 +394,12 @@ export default function App() {
           </div>
         </main>
       </div>
+
+      {/* SUPABASE STATUS MODAL */}
+      <SupabaseStatusModal
+        isOpen={isSupabaseModalOpen}
+        onClose={() => setIsSupabaseModalOpen(false)}
+      />
 
       {/* GLOBAL SEARCH MODAL */}
       <Modal

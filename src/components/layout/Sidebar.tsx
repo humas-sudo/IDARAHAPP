@@ -22,7 +22,12 @@ import {
   ShieldCheck,
   History,
   Building,
-  ChevronRight
+  ChevronRight,
+  Database,
+  BookOpen,
+  LogOut,
+  Sparkles,
+  ShieldAlert
 } from 'lucide-react';
 import { User } from '../../types';
 import { auth } from '../../services/auth';
@@ -34,6 +39,7 @@ interface SidebarProps {
   isOpenMobile: boolean;
   onCloseMobile: () => void;
   currentUser: User;
+  onLogout?: () => void;
 }
 
 interface MenuItem {
@@ -43,6 +49,7 @@ interface MenuItem {
   permission?: string;
   badge?: number | string;
   badgeColor?: string;
+  superAdminOnly?: boolean;
 }
 
 interface MenuGroup {
@@ -55,8 +62,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectModule,
   isOpenMobile,
   onCloseMobile,
-  currentUser
+  currentUser,
+  onLogout
 }) => {
+  const isSuperAdmin = currentUser.role_id === 'super_admin';
+
   const pendingReportsCount = db
     .getState()
     .weeklyReports.filter(
@@ -79,13 +89,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       items: [
         {
           id: 'dashboard',
-          label: 'Dashboard',
+          label: 'Dashboard Terpadu',
           icon: LayoutDashboard
         }
       ]
     },
     {
-      title: 'Administrasi',
+      title: 'Administrasi & Persuratan',
       items: [
         {
           id: 'surat_masuk',
@@ -142,7 +152,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       items: [
         {
           id: 'rapat',
-          label: 'Data Rapat',
+          label: 'Data Agenda Rapat',
           icon: Users,
           permission: 'meetings.view'
         },
@@ -198,6 +208,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
           permission: 'annual_reports.view'
         },
         {
+          id: 'ekspedisi',
+          label: 'Buku Ekspedisi Surat',
+          icon: BookOpen,
+          permission: 'letters.out.view'
+        },
+        {
           id: 'statistik',
           label: 'Statistik & Analitik',
           icon: BarChart3
@@ -205,8 +221,32 @@ export const Sidebar: React.FC<SidebarProps> = ({
       ]
     },
     {
-      title: 'Sistem & Konfigurasi',
+      title: isSuperAdmin ? 'Manajemen & Sistem (Super Admin)' : 'Sistem & Konfigurasi',
       items: [
+        {
+          id: 'users',
+          label: 'Pengguna & Hak Akses',
+          icon: ShieldCheck,
+          permission: 'system.users.manage'
+        },
+        {
+          id: 'organisasi',
+          label: 'Struktur Organisasi & Unit',
+          icon: Building,
+          permission: 'system.org.manage'
+        },
+        {
+          id: 'audit_log',
+          label: 'Audit Log & Riwayat Sistem',
+          icon: History,
+          permission: 'system.audit.view'
+        },
+        {
+          id: 'database_sync',
+          label: 'Database & Sinkronisasi Cloud',
+          icon: Database,
+          permission: 'system.users.manage'
+        },
         {
           id: 'notifikasi',
           label: 'Pusat Notifikasi',
@@ -216,24 +256,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           id: 'pencarian',
           label: 'Pencarian Global',
           icon: Search
-        },
-        {
-          id: 'organisasi',
-          label: 'Struktur Organisasi & Unit',
-          icon: Building,
-          permission: 'system.org.manage'
-        },
-        {
-          id: 'pengguna',
-          label: 'Pengguna & Hak Akses',
-          icon: ShieldCheck,
-          permission: 'system.users.manage'
-        },
-        {
-          id: 'audit_log',
-          label: 'Audit Log & Riwayat',
-          icon: History,
-          permission: 'system.audit.view'
         }
       ]
     }
@@ -242,6 +264,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const handleSelect = (id: string) => {
     onSelectModule(id);
     onCloseMobile();
+  };
+
+  const handleLogoutClick = () => {
+    if (confirm(`Apakah Anda yakin ingin keluar dari akun ${currentUser.name}?`)) {
+      if (onLogout) {
+        onLogout();
+      } else {
+        auth.logout();
+      }
+    }
   };
 
   return (
@@ -258,7 +290,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <aside
         className={`fixed top-0 bottom-0 left-0 z-40 w-64 bg-slate-900 text-slate-300 flex flex-col transition-transform duration-200 ease-in-out lg:translate-x-0 ${
           isOpenMobile ? 'translate-x-0' : '-translate-x-full'
-        } lg:static lg:z-auto`}
+        } lg:static lg:z-auto border-r border-slate-800`}
       >
         {/* Brand in Sidebar (Mobile view) */}
         <div className="h-16 px-6 flex items-center justify-between border-b border-slate-800 lg:hidden">
@@ -279,11 +311,30 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
         </div>
 
+        {/* Super Admin Status Banner */}
+        {isSuperAdmin && (
+          <div className="mx-3 mt-3 p-2.5 bg-gradient-to-r from-amber-950/60 to-slate-900 border border-amber-600/40 rounded-xl flex items-center gap-2.5 shadow-sm">
+            <div className="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/30">
+              <Sparkles className="w-4 h-4" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-[11px] font-bold text-amber-300 flex items-center gap-1">
+                <span>Mode Super Admin</span>
+                <span className="text-[9px] bg-amber-500 text-slate-950 px-1 rounded font-extrabold">24 MODUL</span>
+              </div>
+              <p className="text-[10px] text-amber-200/70 truncate">
+                Seluruh menu & otoritas terbuka penuh
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Scrollable Navigation Groups */}
-        <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
+        <div className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
           {menuGroups.map((group, groupIdx) => {
-            // Filter items by permission
+            // Filter items by permission, but Super Admin sees ALL items
             const visibleItems = group.items.filter(item => {
+              if (isSuperAdmin) return true;
               if (!item.permission) return true;
               return auth.hasPermission(item.permission as any);
             });
@@ -292,7 +343,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
             return (
               <div key={groupIdx} className="space-y-1">
-                <div className="px-3 text-[11px] font-semibold tracking-wider text-slate-400 uppercase">
+                <div className="px-3 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
                   {group.title}
                 </div>
                 {visibleItems.map(item => {
@@ -335,17 +386,34 @@ export const Sidebar: React.FC<SidebarProps> = ({
           })}
         </div>
 
-        {/* Footer Info */}
-        <div className="p-3 border-t border-slate-800 text-[11px] text-slate-300 bg-slate-950/50">
-          <div className="flex items-center justify-between text-slate-300 mb-1">
-            <span className="font-semibold text-white">IDARAH v1.0</span>
-            <span className="text-[10px] bg-emerald-950 text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-800">
-              UNIA Terpusat
+        {/* User Card & Logout Footer */}
+        <div className="p-3 border-t border-slate-800 bg-slate-950/70 space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <div className="text-xs font-bold text-white truncate">
+                {currentUser.name}
+              </div>
+              <div className="text-[10px] text-emerald-400 font-medium truncate">
+                {currentUser.position_title}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleLogoutClick}
+              className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-900/70 text-slate-400 hover:text-rose-200 transition-colors shrink-0"
+              title="Keluar dari sistem (Logout)"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between text-[10px] text-slate-400">
+            <span>Universitas Al-Amien</span>
+            <span className="bg-emerald-950 text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-800">
+              UNIA v1.0
             </span>
           </div>
-          <p className="line-clamp-1 text-slate-400 text-[10px]">
-            Universitas Al-Amien Prenduan
-          </p>
         </div>
       </aside>
     </>

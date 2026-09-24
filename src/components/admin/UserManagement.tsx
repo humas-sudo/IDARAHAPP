@@ -20,15 +20,23 @@ import { EmptyState } from '../common/EmptyState';
 interface UserManagementProps {
   currentUser: User;
   activeMahadId: MahadId;
+  initialTab?: 'users' | 'roles' | 'audit' | 'organisasi';
 }
 
 export const UserManagement: React.FC<UserManagementProps> = ({
   currentUser,
-  activeMahadId
+  activeMahadId,
+  initialTab = 'users'
 }) => {
-  const [activeTab, setActiveTab] = useState<'users' | 'roles' | 'audit'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'roles' | 'audit' | 'organisasi'>(initialTab);
   const [search, setSearch] = useState('');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+
+  React.useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
 
   const users = db.getUsers();
   const roles = db.getRoles();
@@ -149,6 +157,19 @@ export const UserManagement: React.FC<UserManagementProps> = ({
         >
           <History className="w-4 h-4" />
           Log Audit Jejak Aktivitas ({auditLogs.length})
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('organisasi')}
+          className={`px-4 py-2.5 text-xs font-bold transition-colors border-b-2 flex items-center gap-2 ${
+            activeTab === 'organisasi'
+              ? 'border-[#0d5c3a] text-[#0d5c3a]'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <Building className="w-4 h-4" />
+          Struktur Unit & Organisasi ({units.length})
         </button>
       </div>
 
@@ -313,6 +334,95 @@ export const UserManagement: React.FC<UserManagementProps> = ({
                 </div>
               ))
             )}
+          </div>
+        </div>
+      )}
+
+      {/* TAB 4: ORGANISASI & UNIT KERJA */}
+      {activeTab === 'organisasi' && (
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Ma'had Banin */}
+            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs space-y-3">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div>
+                  <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-600" />
+                    Ma'had Lil Banin (Putra)
+                  </h3>
+                  <p className="text-[11px] text-slate-500">Unit kerja kepesantrenan santri putra UNIA</p>
+                </div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold">
+                  {units.filter(u => u.mahad_id === 'mahad-banin').length} Unit
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                {units
+                  .filter(u => u.mahad_id === 'mahad-banin')
+                  .map(unit => (
+                    <div
+                      key={unit.id}
+                      className="p-3 rounded-lg border border-slate-100 hover:border-emerald-200 bg-slate-50/50 text-xs space-y-1"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-slate-800">{unit.name}</span>
+                        <span className="font-mono text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded">
+                          {unit.code}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-600">{unit.description}</p>
+                      <div className="pt-1 flex items-center justify-between text-[10px] text-slate-500">
+                        <span>Pimpinan: <strong className="text-slate-700">{unit.head_name}</strong> ({unit.head_position})</span>
+                        <span className={`px-1.5 py-0.5 rounded ${unit.is_reporting_unit ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'bg-slate-100 text-slate-600'}`}>
+                          {unit.is_reporting_unit ? 'Unit Wajib Lapor' : 'Administrasi'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+
+            {/* Ma'had Banat */}
+            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs space-y-3">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div>
+                  <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+                    Ma'had Lil Banat (Putri)
+                  </h3>
+                  <p className="text-[11px] text-slate-500">Unit kerja kepesantrenan santriwati putri UNIA</p>
+                </div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-rose-50 text-rose-800 border border-rose-200 font-bold">
+                  {units.filter(u => u.mahad_id === 'mahad-banat').length} Unit
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                {units
+                  .filter(u => u.mahad_id === 'mahad-banat')
+                  .map(unit => (
+                    <div
+                      key={unit.id}
+                      className="p-3 rounded-lg border border-slate-100 hover:border-rose-200 bg-slate-50/50 text-xs space-y-1"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-slate-800">{unit.name}</span>
+                        <span className="font-mono text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded">
+                          {unit.code}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-600">{unit.description}</p>
+                      <div className="pt-1 flex items-center justify-between text-[10px] text-slate-500">
+                        <span>Pimpinan: <strong className="text-slate-700">{unit.head_name}</strong> ({unit.head_position})</span>
+                        <span className={`px-1.5 py-0.5 rounded ${unit.is_reporting_unit ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'bg-slate-100 text-slate-600'}`}>
+                          {unit.is_reporting_unit ? 'Unit Wajib Lapor' : 'Administrasi'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
           </div>
         </div>
       )}
